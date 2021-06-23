@@ -1,0 +1,33 @@
+{
+  "name": "",
+  "version": "0.0.0",
+  "description": "",
+  "main": "build/src/index.js",
+  "types": "build/src/index.d.ts",
+  "files": [
+    "build/src"
+  ],
+  "license": "Apache-2.0",
+  "keywords": [],
+  "scripts": {
+    "test": "jest dist --coverage",
+    "lint": "gts lint",
+    "clean": "gts clean",
+    "compile": "tsc",
+    "fix": "gts fix",
+    "prepare": "npm run compile",
+    "pretest": "npm run compile",
+    "posttest": "npm run lint"
+  },
+  "devDependencies": {
+    "@types/jest": "^26.0.23",
+    "@types/node": "^14.11.2",
+    "gts": "^3.1.0",
+    "jest": "^27.0.5",
+    "typescript": "^4.0.3"
+  },
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.18.0",
+    "id128": "^1.6.6"
+  }
+}
