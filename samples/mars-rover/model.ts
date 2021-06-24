@@ -84,6 +84,7 @@ function onConfigured(e: SimulationConfigured, state: Simulation) {
   return {
     ...state,
     bounds: {x: e.x, y: e.y},
+    sequence: 1 + state.sequence,
   };
 }
 
@@ -257,4 +258,9 @@ export function apply(events: Array<RoverEvent>, state: Simulation) {
     }
   }
   return state;
+}
+
+export interface Repository {
+  get: (simulationId: string) => Promise<Simulation>;
+  save: (simulationId: string, events: Array<RoverEvent>) => Promise<void>;
 }

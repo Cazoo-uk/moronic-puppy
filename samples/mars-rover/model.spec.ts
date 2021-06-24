@@ -58,7 +58,7 @@ describe('When starting the simulation', () => {
     expect(event.y).toBe(20);
   });
 
-  it('should be sequence 0', () => {
+  it('should be sequence 1', () => {
     expect(events[0].sequence).toBe(1);
   });
 
@@ -90,6 +90,11 @@ describe('When a rover lands', () => {
       const [e] = events;
 
       expect(e.tag).toBe('RoverLanded');
+    });
+
+    it('should be sequence 2', () => {
+      const [e] = events;
+      expect(e.sequence).toBe(2);
     });
 
     it('should have landed in the correct position and bearing', () => {

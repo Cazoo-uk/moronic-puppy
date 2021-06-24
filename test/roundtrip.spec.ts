@@ -1,4 +1,4 @@
-import {EventStore} from '../src';
+import {EventStore, Success, Conflict} from '../src';
 import {
   random_stream,
   copy,
@@ -48,5 +48,56 @@ describe('When writing to an existing stream', () => {
   it('should accept writes for a future version', async () => {
     const result = await store.write(streamName, jump(3));
     expect(result.tag).toBe('Success');
+  });
+});
+
+describe('When writing multiple events', () => {
+  const streamName = random_stream();
+  let store: EventStore<PonyJumped>;
+  let result: Array<PonyJumped>;
+
+  beforeAll(async () => {
+    store = await given_an_empty_event_store();
+    await store.write(streamName, [
+      jump(1, 'InitialHooves'),
+      jump(2, 'SecondHooves'),
+      jump(3, 'TertiaryHooves'),
+    ]);
+    result = await copy(store.read(streamName));
+  });
+
+  it('should write 3 items', async () => {
+    expect(result).toHaveLength(3);
+  });
+
+  it('should order the events correctly', async () => {
+    expect(result[0].data.name).toBe('InitialHooves');
+    expect(result[1].data.name).toBe('SecondHooves');
+    expect(result[2].data.name).toBe('TertiaryHooves');
+  });
+});
+
+describe('When writing multiple events with the same sequence number', () => {
+  const streamName = random_stream();
+  let store: EventStore<PonyJumped>;
+  let stored: Array<PonyJumped>;
+  let result: Success | Conflict;
+
+  beforeAll(async () => {
+    store = await given_an_empty_event_store();
+    result = await store.write(streamName, [
+      jump(1, 'InitialHooves'),
+      jump(2, 'SecondHooves'),
+      jump(2, 'TertiaryHooves'),
+    ]);
+    stored = await copy(store.read(streamName));
+  });
+
+  it('should write 0 items', async () => {
+    expect(stored).toHaveLength(0);
+  });
+
+  it('should return conflict', () => {
+    expect(result.isOk).toBe(false);
   });
 });

@@ -7,8 +7,12 @@ export interface Event<TType = string, TPayload = unknown> {
   data: TPayload;
 }
 
-type Success = {tag: 'Success'; isOk: true; isError: false};
-type Conflict = {tag: 'Conflict'; isOk: false; isError: true};
+export type Success = {tag: 'Success'; isOk: true; isError: false};
+export type Conflict = {tag: 'Conflict'; isOk: false; isError: true};
+
+function isArray<T = unknown>(a: unknown): a is T[] {
+  return Array.isArray(a);
+}
 
 export class EventStore<TEvent extends Event = Event> {
   #client: DynamoDB;
@@ -21,13 +25,25 @@ export class EventStore<TEvent extends Event = Event> {
 
   public async write(
     stream: string,
+    events: Array<TEvent>
+  ): Promise<Success | Conflict>;
+  public async write(
+    stream: string,
     event: TEvent
+  ): Promise<Success | Conflict>;
+  public async write(
+    stream: string,
+    events: Array<TEvent> | TEvent
   ): Promise<Success | Conflict> {
+    if (!isArray<TEvent>(events)) events = [events];
     try {
-      await this.#client.putItem(eventInsert(this.#table, stream, event));
+      const request = events.map(e => ({
+        Put: eventInsert(this.#table, stream, e),
+      }));
+      await this.#client.transactWriteItems({TransactItems: request});
       return {tag: 'Success', isOk: true, isError: false};
     } catch (e) {
-      if (e.name === 'ConditionalCheckFailedException') {
+      if (e.name === 'TransactionCanceledException') {
         return {
           tag: 'Conflict',
           isOk: false,
