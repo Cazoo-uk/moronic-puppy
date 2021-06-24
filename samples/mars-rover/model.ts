@@ -99,6 +99,9 @@ export function land(id: number, x: number, y: number, bearing: Bearing): Land {
 }
 
 export function addRover(cmd: Land, state: Simulation): Decision {
+  if (cmd.x > state.bounds.x || cmd.y > state.bounds.y)
+    return fail('Landing coordinates out of range');
+
   return ok([
     {
       tag: 'RoverLanded',

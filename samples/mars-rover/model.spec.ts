@@ -96,7 +96,10 @@ describe('When a rover lands', () => {
 
   describe('and is out of bounds', () => {
     const state = given_a_running_sim(10, 10);
+    const decision = decide(land(1, 20, 20, 'W'), state);
 
-    it('should return Error', () => {});
+    it('should return Error', () => {
+      expect(decision.isOk).toBe(false);
+    });
   });
 });
