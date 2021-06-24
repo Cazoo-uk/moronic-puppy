@@ -12,6 +12,7 @@ export class EventRepository implements Repository {
   public async get(simulationId: string) {
     let state = empty();
     for await (const e of this.store.read(simulationId)) {
+      console.log(e);
       state = apply([e.data], state);
     }
     return state;

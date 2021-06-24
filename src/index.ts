@@ -70,7 +70,7 @@ export class EventStore<TEvent extends Event = Event> {
 
   private eventFromData(item: {[key: string]: AttributeValue}) {
     return {
-      sequence: parseInt(item.SK.N!),
+      sequence: parseInt(item.SK.S!.slice(1)),
       type: item.TYPE.S || '',
       data: JSON.parse(item.DATA.S || ''),
     } as TEvent;

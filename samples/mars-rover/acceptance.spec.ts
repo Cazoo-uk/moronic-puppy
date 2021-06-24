@@ -13,6 +13,7 @@ test('create an move a rover', async () => {
   await create(repo, id, 10, 10);
   await addRover(repo, id, 1, 5, 5, 'N');
   await moveRover(repo, id, 1, 'FFRF');
+  const data = await get(repo, id);
 
-  console.log(JSON.stringify(await get(repo, id)));
+  console.log(JSON.stringify(data));
 });

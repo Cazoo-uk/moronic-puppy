@@ -1,8 +1,8 @@
 import {Bearing, decide, empty, start, land, move, Repository} from './model';
 import {Ulid} from 'id128';
 
-const get = (repo: Repository, simulationId: string) => {
-  return JSON.stringify(repo.get(simulationId));
+const get = async (repo: Repository, simulationId: string) => {
+  return await repo.get(simulationId);
 };
 
 const create = async (
