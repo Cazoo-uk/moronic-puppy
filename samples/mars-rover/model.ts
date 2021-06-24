@@ -4,6 +4,7 @@ export interface Position {
 }
 
 export type Bearing = 'N' | 'E' | 'S' | 'W';
+const bearings: Array<Bearing> = ['N', 'E', 'S', 'W'];
 
 export type Success = {
   tag: 'Success';
@@ -102,6 +103,9 @@ export function addRover(cmd: Land, state: Simulation): Decision {
   if (cmd.x > state.bounds.x || cmd.y > state.bounds.y)
     return fail('Landing coordinates out of range');
 
+  if (cmd.x < 0 || cmd.y < 0)
+    return fail('Landing coordinates must be positive');
+
   return ok([
     {
       tag: 'RoverLanded',
@@ -133,8 +137,99 @@ const onLanded = (e: RoverLanded, state: Simulation) => {
   return result;
 };
 
-export type RoverCommand = Start | Land;
-export type RoverEvent = SimulationConfigured | RoverLanded;
+export type Move = {
+  tag: 'Move';
+  id: number;
+  instructions: string;
+};
+
+export function move(id: number, instructions: string): Move {
+  return {
+    tag: 'Move',
+    id,
+    instructions,
+  };
+}
+
+export type RoverMoved = {
+  tag: 'Moved';
+  id: number;
+  x: number;
+  y: number;
+  bearing: Bearing;
+  sequence: number;
+};
+
+function forward(rover: RoverState) {
+  const pos = rover.position;
+  switch (rover.bearing) {
+    case 'N':
+      return {...rover, position: {x: pos.x, y: 1 + pos.y}};
+    case 'W':
+      return {...rover, position: {x: pos.x + 1, y: pos.y}};
+    case 'S':
+      return {...rover, position: {x: pos.x, y: pos.y - 1}};
+    case 'E':
+      return {...rover, position: {x: pos.x - 1, y: pos.y}};
+  }
+}
+
+function right(rover: RoverState) {
+  const i = bearings.indexOf(rover.bearing);
+  const newBearing = bearings[(i + 1) % 4];
+  return {...rover, bearing: newBearing};
+}
+
+function left(rover: RoverState) {
+  const i = bearings.indexOf(rover.bearing);
+  const newBearing = bearings[(i + 3) % 4];
+  return {...rover, bearing: newBearing};
+}
+
+function processMoves(cmd: Move, state: Simulation) {
+  let rover = state.rovers[cmd.id];
+
+  for (let i = 0; i < cmd.instructions.length; i++) {
+    const instruction = cmd.instructions[i];
+
+    switch (instruction) {
+      case 'F':
+        rover = forward(rover);
+        break;
+      case 'R':
+        rover = right(rover);
+        break;
+      case 'L':
+        rover = left(rover);
+        break;
+    }
+  }
+
+  return ok([
+    {
+      tag: 'Moved',
+      x: rover.position.x,
+      y: rover.position.y,
+      id: cmd.id,
+      bearing: rover.bearing,
+      sequence: state.sequence + 1,
+    },
+  ]);
+}
+
+function onMove(event: RoverMoved, state: Simulation) {
+  state.rovers[event.id] = {
+    position: {
+      x: event.x,
+      y: event.y,
+    },
+    bearing: event.bearing,
+  };
+  return state;
+}
+
+export type RoverCommand = Start | Land | Move;
+export type RoverEvent = SimulationConfigured | RoverLanded | RoverMoved;
 
 export function decide(cmd: RoverCommand, state: Simulation): Decision {
   switch (cmd.tag) {
@@ -142,6 +237,8 @@ export function decide(cmd: RoverCommand, state: Simulation): Decision {
       return configure(cmd, state);
     case 'Land':
       return addRover(cmd, state);
+    case 'Move':
+      return processMoves(cmd, state);
   }
 }
 
@@ -155,6 +252,8 @@ export function apply(events: Array<RoverEvent>, state: Simulation) {
       case 'SimulationConfigured':
         state = onConfigured(e, state);
         break;
+      case 'Moved':
+        state = onMove(e, state);
     }
   }
   return state;

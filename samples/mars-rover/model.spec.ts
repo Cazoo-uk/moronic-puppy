@@ -2,17 +2,25 @@ import {
   empty,
   start,
   land,
+  move,
   decide,
   apply,
   Decision,
   Success,
   Failure,
   RoverEvent,
+  Bearing,
 } from './model';
 
 const given_a_running_sim = (x: number, y: number) => {
   const decision = decide(start(x, y), empty());
   return apply(assert_ok(decision), empty());
+};
+
+const given_a_rover_at = (x: number, y: number, bearing: Bearing) => {
+  const init = given_a_running_sim(10, 10);
+  const decision = decide(land(1, x, y, bearing), init);
+  return apply(assert_ok(decision), init);
 };
 
 const assert_ok = (decision: Decision): Array<RoverEvent> => {
@@ -100,6 +108,66 @@ describe('When a rover lands', () => {
 
     it('should return Error', () => {
       expect(decision.isOk).toBe(false);
+    });
+  });
+
+  describe('and is in the howling void', () => {
+    const state = given_a_running_sim(10, 10);
+    const decision = decide(land(1, -1, 0, 'E'), state);
+
+    it('should return Error', () => {
+      expect(decision.isOk).toBe(false);
+    });
+  });
+});
+
+describe('When a rover moves', () => {
+  describe('and is in bounds', () => {
+    const init = given_a_rover_at(0, 0, 'N');
+    const events = assert_ok(decide(move(1, 'FFF'), init));
+
+    const result = apply(events, init);
+
+    it('should move the rover', () => {
+      expect(result.rovers[1].position).toMatchObject({
+        x: 0,
+        y: 3,
+      });
+    });
+  });
+
+  describe('in a square', () => {
+    const init = given_a_rover_at(5, 5, 'N');
+    const events = assert_ok(decide(move(1, 'FFRFFRFFRFF'), init));
+
+    const result = apply(events, init);
+
+    it('should return the rover to its starting position', () => {
+      expect(result.rovers[1].position).toMatchObject({
+        x: 5,
+        y: 5,
+      });
+    });
+
+    it('should have turned 270 degrees right', () => {
+      expect(result.rovers[1].bearing).toBe('W');
+    });
+  });
+  describe('in a counter-clockwise square', () => {
+    const init = given_a_rover_at(5, 5, 'N');
+    const events = assert_ok(decide(move(1, 'FFLFFLFFLFF'), init));
+
+    const result = apply(events, init);
+
+    it('should return the rover to its starting position', () => {
+      expect(result.rovers[1].position).toMatchObject({
+        x: 5,
+        y: 5,
+      });
+    });
+
+    it('should have turned 270 degrees left', () => {
+      expect(result.rovers[1].bearing).toBe('E');
     });
   });
 });
