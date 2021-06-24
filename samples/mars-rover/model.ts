@@ -5,6 +5,27 @@ export interface Position {
 
 export type Bearing = 'N' | 'E' | 'S' | 'W';
 
+export type Success = {
+  tag: 'Success';
+  isOk: true;
+  events: Array<RoverEvent>;
+};
+
+export type Failure = {
+  tag: 'Failure';
+  isOk: false;
+  msg?: string;
+};
+
+export type Decision = Success | Failure;
+
+const ok = (events: Array<RoverEvent>): Success => ({
+  tag: 'Success',
+  events,
+  isOk: true,
+});
+const fail = (msg?: string): Failure => ({tag: 'Failure', msg, isOk: false});
+
 export interface RoverState {
   position: Position;
   bearing: Bearing;
@@ -47,15 +68,15 @@ export type SimulationConfigured = {
   y: number;
 };
 
-function configure(cmd: Start, state: Simulation): Array<RoverEvent> {
-  return [
+function configure(cmd: Start, state: Simulation): Decision {
+  return ok([
     {
       tag: 'SimulationConfigured',
       x: cmd.x,
       y: cmd.y,
       sequence: 1,
     },
-  ];
+  ]);
 }
 
 function onConfigured(e: SimulationConfigured, state: Simulation) {
@@ -77,8 +98,8 @@ export function land(id: number, x: number, y: number, bearing: Bearing): Land {
   return {tag: 'Land', x, y, id, bearing};
 }
 
-export function addRover(cmd: Land, state: Simulation): Array<RoverEvent> {
-  return [
+export function addRover(cmd: Land, state: Simulation): Decision {
+  return ok([
     {
       tag: 'RoverLanded',
       x: cmd.x,
@@ -87,7 +108,7 @@ export function addRover(cmd: Land, state: Simulation): Array<RoverEvent> {
       id: cmd.id,
       sequence: state.sequence + 1,
     },
-  ];
+  ]);
 }
 
 export type RoverLanded = {
@@ -112,10 +133,7 @@ const onLanded = (e: RoverLanded, state: Simulation) => {
 export type RoverCommand = Start | Land;
 export type RoverEvent = SimulationConfigured | RoverLanded;
 
-export function decide(
-  cmd: RoverCommand,
-  state: Simulation
-): Array<RoverEvent> {
+export function decide(cmd: RoverCommand, state: Simulation): Decision {
   switch (cmd.tag) {
     case 'Start':
       return configure(cmd, state);

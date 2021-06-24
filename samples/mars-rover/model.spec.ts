@@ -1,4 +1,24 @@
-import {empty, start, land, decide, apply} from './model';
+import {
+  empty,
+  start,
+  land,
+  decide,
+  apply,
+  Decision,
+  Success,
+  Failure,
+  RoverEvent,
+} from './model';
+
+const given_a_running_sim = (x: number, y: number) => {
+  const decision = decide(start(x, y), empty());
+  return apply(assert_ok(decision), empty());
+};
+
+const assert_ok = (decision: Decision): Array<RoverEvent> => {
+  if (decision.isOk) return decision.events;
+  throw new Error('Expected OK, but was not');
+};
 
 describe('When creating the simulation', () => {
   const state = empty();
@@ -18,7 +38,7 @@ describe('When creating the simulation', () => {
 describe('When starting the simulation', () => {
   const cmd = start(10, 20);
 
-  const events = decide(cmd, empty());
+  const events = assert_ok(decide(cmd, empty()));
   const state = apply(events, empty());
 
   it('should raise SimulationConfigured', () => {
@@ -46,14 +66,10 @@ describe('When starting the simulation', () => {
   });
 });
 
-const given_a_running_sim = (x: number, y: number) => {
-  return apply(decide(start(x, y), empty()), empty());
-};
-
 describe('When a rover lands', () => {
   describe('And is in bounds', () => {
     const state = given_a_running_sim(10, 10);
-    const events = decide(land(1, 5, 5, 'N'), state);
+    const events = assert_ok(decide(land(1, 5, 5, 'N'), state));
 
     const result = apply(events, state);
 
@@ -76,5 +92,11 @@ describe('When a rover lands', () => {
         y: 5,
       });
     });
+  });
+
+  describe('and is out of bounds', () => {
+    const state = given_a_running_sim(10, 10);
+
+    it('should return Error', () => {});
   });
 });
