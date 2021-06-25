@@ -52,6 +52,7 @@ const onLanded = (e: RoverLanded, state: Simulation) => {
       position: {x: e.x, y: e.y},
     }),
     count: state.count + 1,
+    sequence: state.sequence + 1,
   };
   return result;
 };
@@ -64,5 +65,5 @@ function onMove(event: RoverMoved, state: Simulation) {
     },
     bearing: event.bearing,
   });
-  return {...state, rovers};
+  return {...state, rovers, sequence: state.sequence + 1};
 }
