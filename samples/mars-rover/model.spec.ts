@@ -6,11 +6,11 @@ import {
   decide,
   apply,
   Decision,
-  Success,
-  Failure,
   RoverEvent,
   Bearing,
 } from './model';
+
+const rover_id = 'rory'
 
 const given_a_running_sim = (x: number, y: number) => {
   const decision = decide(start(x, y), empty());
@@ -19,7 +19,7 @@ const given_a_running_sim = (x: number, y: number) => {
 
 const given_a_rover_at = (x: number, y: number, bearing: Bearing) => {
   const init = given_a_running_sim(10, 10);
-  const decision = decide(land(1, x, y, bearing), init);
+  const decision = decide(land(rover_id, x, y, bearing), init);
   return apply(assert_ok(decision), init);
 };
 
@@ -77,7 +77,7 @@ describe('When starting the simulation', () => {
 describe('When a rover lands', () => {
   describe('And is in bounds', () => {
     const state = given_a_running_sim(10, 10);
-    const events = assert_ok(decide(land(1, 5, 5, 'N'), state));
+    const events = assert_ok(decide(land(rover_id, 5, 5, 'N'), state));
 
     const result = apply(events, state);
 
@@ -98,9 +98,9 @@ describe('When a rover lands', () => {
     });
 
     it('should have landed in the correct position and bearing', () => {
-      const rover = result.rovers[1];
-      expect(rover.bearing).toBe('N');
-      expect(rover.position).toMatchObject({
+      const rover = result.rovers.get(rover_id);
+      expect(rover!.bearing).toBe('N');
+      expect(rover!.position).toMatchObject({
         x: 5,
         y: 5,
       });
@@ -109,7 +109,7 @@ describe('When a rover lands', () => {
 
   describe('and is out of bounds', () => {
     const state = given_a_running_sim(10, 10);
-    const decision = decide(land(1, 20, 20, 'W'), state);
+    const decision = decide(land(rover_id, 20, 20, 'W'), state);
 
     it('should return Error', () => {
       expect(decision.isOk).toBe(false);
@@ -118,7 +118,7 @@ describe('When a rover lands', () => {
 
   describe('and is in the howling void', () => {
     const state = given_a_running_sim(10, 10);
-    const decision = decide(land(1, -1, 0, 'E'), state);
+    const decision = decide(land(rover_id, -1, 0, 'E'), state);
 
     it('should return Error', () => {
       expect(decision.isOk).toBe(false);
@@ -129,13 +129,14 @@ describe('When a rover lands', () => {
 describe('When a rover moves', () => {
   describe('and is in bounds', () => {
     const init = given_a_rover_at(0, 0, 'N');
-    const events = assert_ok(decide(move(1, 'FFF'), init));
+    const events = assert_ok(decide(move(rover_id, 'FFF'), init));
 
     const result = apply(events, init);
+    const rover = result.rovers.get(rover_id)
 
     it('should move the rover', () => {
-      expect(result.rovers[1].position).toMatchObject({
-        x: 0,
+      expect(rover!.position).toMatchObject({
+        x: 0!,
         y: 3,
       });
     });
@@ -143,36 +144,38 @@ describe('When a rover moves', () => {
 
   describe('in a square', () => {
     const init = given_a_rover_at(5, 5, 'N');
-    const events = assert_ok(decide(move(1, 'FFRFFRFFRFF'), init));
+    const events = assert_ok(decide(move(rover_id, 'FFRFFRFFRFF'), init));
 
     const result = apply(events, init);
+    const rover = result.rovers.get(rover_id);
 
     it('should return the rover to its starting position', () => {
-      expect(result.rovers[1].position).toMatchObject({
-        x: 5,
+      expect(rover!.position).toMatchObject({
+        x: 5!,
         y: 5,
       });
     });
 
     it('should have turned 270 degrees right', () => {
-      expect(result.rovers[1].bearing).toBe('W');
+      expect(rover!.bearing).toBe('W');
     });
   });
   describe('in a counter-clockwise square', () => {
     const init = given_a_rover_at(5, 5, 'N');
-    const events = assert_ok(decide(move(1, 'FFLFFLFFLFF'), init));
+    const events = assert_ok(decide(move(rover_id, 'FFLFFLFFLFF'), init));
 
     const result = apply(events, init);
+    const rover = result.rovers.get(rover_id);
 
     it('should return the rover to its starting position', () => {
-      expect(result.rovers[1].position).toMatchObject({
+      expect(rover!.position).toMatchObject({
         x: 5,
         y: 5,
       });
     });
 
     it('should have turned 270 degrees left', () => {
-      expect(result.rovers[1].bearing).toBe('E');
+      expect(rover!.bearing).toBe('E');
     });
   });
 });

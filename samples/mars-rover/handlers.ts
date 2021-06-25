@@ -1,6 +1,12 @@
 import {Bearing, decide, empty, start, land, move, Repository} from './model';
 import {Ulid} from 'id128';
 
+/*
+ * Handlers are the use-cases for our system and are directly invoked by Lambda functions
+ * They are responsible for orchestrating the flow of a request.
+ * Handlers usually GET some state, DECIDE some command, and SAVE some state.
+ */
+
 const get = async (repo: Repository, simulationId: string) => {
   return await repo.get(simulationId);
 };
@@ -19,7 +25,7 @@ const create = async (
 const addRover = async (
   repo: Repository,
   simulationId: string,
-  roverId: number,
+  roverId: string,
   x: number,
   y: number,
   bearing: Bearing
@@ -32,7 +38,7 @@ const addRover = async (
 const moveRover = async (
   repo: Repository,
   simulationId: string,
-  roverId: number,
+  roverId: string,
   instructions: string
 ) => {
   const state = await repo.get(simulationId);
