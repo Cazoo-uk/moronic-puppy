@@ -4,7 +4,7 @@ import {RoverEvent} from './events';
 export {Bearing, empty} from './state';
 export {RoverEvent} from './events';
 export {Success, Failure, Decision, decide} from './deciders';
-export {apply} from './reducers';
+export {reduce} from './reducers';
 
 export {start, land, move} from './commands';
 

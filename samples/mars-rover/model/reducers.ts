@@ -19,7 +19,7 @@ type Reducer<TEvent extends RoverEvent> = (
  * We use a dispatch table to map events to reducers
  */
 
-export function apply(events: Array<RoverEvent>, state: Simulation) {
+export function reduce(events: Array<RoverEvent>, state: Simulation) {
   for (let i = 0; i < events.length; i++) {
     const e = events[i];
     switch (e.tag) {
