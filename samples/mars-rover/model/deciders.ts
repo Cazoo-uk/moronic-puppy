@@ -99,6 +99,10 @@ function processMoves(cmd: Move, state: Simulation) {
       case 'L':
         rover = left(rover);
         break;
+      default:
+        return fail(
+          `Invalid instruction ${instruction} at ${i} in ${cmd.instructions}`
+        );
     }
   }
 

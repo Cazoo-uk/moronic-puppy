@@ -142,6 +142,21 @@ describe('When a rover moves', () => {
     });
   });
 
+  describe('backwards', () => {
+    const init = given_a_rover_at(5, 5, 'N');
+    const events = assert_ok(decide(move(rover_id, 'BBB'), init));
+
+    const result = reduce(events, init);
+    const rover = result.rovers.get(rover_id);
+
+    it('should move the rover', () => {
+      expect(rover!.position).toMatchObject({
+        x: 5,
+        y: 2,
+      });
+    });
+  });
+
   describe('in a square', () => {
     const init = given_a_rover_at(5, 5, 'N');
     const events = assert_ok(decide(move(rover_id, 'FFRFFRFFRFF'), init));
@@ -160,6 +175,7 @@ describe('When a rover moves', () => {
       expect(rover!.bearing).toBe('W');
     });
   });
+
   describe('in a counter-clockwise square', () => {
     const init = given_a_rover_at(5, 5, 'N');
     const events = assert_ok(decide(move(rover_id, 'FFLFFLFFLFF'), init));
@@ -176,6 +192,38 @@ describe('When a rover moves', () => {
 
     it('should have turned 270 degrees left', () => {
       expect(rover!.bearing).toBe('E');
+    });
+  });
+
+  describe('in a backward square', () => {
+    const init = given_a_rover_at(5, 5, 'N');
+    const events = assert_ok(decide(move(rover_id, 'BBLBBLBBLBB'), init));
+
+    const result = reduce(events, init);
+    const rover = result.rovers.get(rover_id);
+
+    it('should return the rover to its starting position', () => {
+      expect(rover!.position).toMatchObject({
+        x: 5,
+        y: 5,
+      });
+    });
+
+    it('should have turned 270 degrees left', () => {
+      expect(rover!.bearing).toBe('E');
+    });
+  });
+
+  describe('and the instructions are invalid', () => {
+    const init = given_a_rover_at(5, 5, 'N');
+    const result = decide(move(rover_id, 'FFLXRBB'), init);
+
+    it('should fail', () => {
+      expect(result.isOk).toBe(false);
+      expect(result).toHaveProperty(
+        'msg',
+        'Invalid instruction X at 3 in FFLXRBB'
+      );
     });
   });
 });
