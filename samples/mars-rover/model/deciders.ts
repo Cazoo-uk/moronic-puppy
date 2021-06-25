@@ -1,7 +1,6 @@
-import {Simulation, move, left, right} from './state'
-import {RoverEvent} from './events'
-import {Start, Move, Land, RoverCommand} from './commands'
-
+import {Simulation, move, left, right} from './state';
+import {RoverEvent} from './events';
+import {Start, Move, Land, RoverCommand} from './commands';
 
 export type Decision = Success | Failure;
 
@@ -24,14 +23,16 @@ const ok = (events: Array<RoverEvent>): Success => ({
 });
 const fail = (msg?: string): Failure => ({tag: 'Failure', msg, isOk: false});
 
-
 /*
  * Deciders take a command plus a state and return either
  * * Success with a list of events for the decisions we took
  * * Failure with a message
  * */
 
-export type Decider<T extends RoverCommand> = (cmd: RoverCommand, state:Simulation) => Decision
+export type Decider<T extends RoverCommand> = (
+  cmd: RoverCommand,
+  state: Simulation
+) => Decision;
 
 /*
  * We use a simple dispatch table to match commands with deciders
@@ -47,10 +48,9 @@ export function decide(cmd: RoverCommand, state: Simulation): Decision {
   }
 }
 
-
 function configure(cmd: Start, state: Simulation): Decision {
-  if(state.count > 0) {
-      return fail("Can't re-configure a simulation with landed rovers")
+  if (state.count > 0) {
+    return fail("Can't re-configure a simulation with landed rovers");
   }
   return ok([
     {
@@ -81,11 +81,9 @@ function addRover(cmd: Land, state: Simulation): Decision {
   ]);
 }
 
-
 function processMoves(cmd: Move, state: Simulation) {
-    let rover = state.rovers.get(cmd.id);
-    if(undefined === rover)
-        return fail(`Rover ${cmd.id} not found`)
+  let rover = state.rovers.get(cmd.id);
+  if (undefined === rover) return fail(`Rover ${cmd.id} not found`);
 
   for (let i = 0; i < cmd.instructions.length; i++) {
     const instruction = cmd.instructions[i];
@@ -106,7 +104,7 @@ function processMoves(cmd: Move, state: Simulation) {
 
   return ok([
     {
-      tag: 'Moved',
+      tag: 'RoverMoved',
       x: rover.position.x,
       y: rover.position.y,
       id: cmd.id,
@@ -115,4 +113,3 @@ function processMoves(cmd: Move, state: Simulation) {
     },
   ]);
 }
-

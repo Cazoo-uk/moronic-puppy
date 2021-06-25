@@ -1,4 +1,4 @@
-import {Bearing} from './state'
+import {Bearing} from './state';
 /*
  * Commands are instructions for the system to do a thing.
  * In this case we use a tagged union for the command type

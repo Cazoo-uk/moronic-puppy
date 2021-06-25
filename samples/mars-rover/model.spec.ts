@@ -10,7 +10,7 @@ import {
   Bearing,
 } from './model';
 
-const rover_id = 'rory'
+const rover_id = 'rory';
 
 const given_a_running_sim = (x: number, y: number) => {
   const decision = decide(start(x, y), empty());
@@ -132,7 +132,7 @@ describe('When a rover moves', () => {
     const events = assert_ok(decide(move(rover_id, 'FFF'), init));
 
     const result = apply(events, init);
-    const rover = result.rovers.get(rover_id)
+    const rover = result.rovers.get(rover_id);
 
     it('should move the rover', () => {
       expect(rover!.position).toMatchObject({

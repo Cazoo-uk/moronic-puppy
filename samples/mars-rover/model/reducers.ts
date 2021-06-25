@@ -1,11 +1,19 @@
-import {Simulation} from './state'
-import {RoverEvent, SimulationConfigured, RoverMoved, RoverLanded} from './events'
+import {Simulation} from './state';
+import {
+  RoverEvent,
+  SimulationConfigured,
+  RoverMoved,
+  RoverLanded,
+} from './events';
 /*
  * Reducers take an event and a state and apply the event to return a new state
  * They do not fail.
  */
 
-type Reducer<TEvent extends RoverEvent> = (e: TEvent, state: Simulation) => Simulation
+type Reducer<TEvent extends RoverEvent> = (
+  e: TEvent,
+  state: Simulation
+) => Simulation;
 
 /*
  * We use a dispatch table to map events to reducers
@@ -21,7 +29,7 @@ export function apply(events: Array<RoverEvent>, state: Simulation) {
       case 'SimulationConfigured':
         state = onConfigured(e, state);
         break;
-      case 'Moved':
+      case 'RoverMoved':
         state = onMove(e, state);
     }
   }
@@ -37,10 +45,14 @@ function onConfigured(e: SimulationConfigured, state: Simulation) {
 }
 
 const onLanded = (e: RoverLanded, state: Simulation) => {
-  const result = {...state, rovers: state.rovers.set(e.id, {
-    bearing: e.bearing,
-    position: {x: e.x, y: e.y},
-  }), count: state.count + 1 };
+  const result = {
+    ...state,
+    rovers: state.rovers.set(e.id, {
+      bearing: e.bearing,
+      position: {x: e.x, y: e.y},
+    }),
+    count: state.count + 1,
+  };
   return result;
 };
 
@@ -52,8 +64,5 @@ function onMove(event: RoverMoved, state: Simulation) {
     },
     bearing: event.bearing,
   });
-    return {...state, rovers};
+  return {...state, rovers};
 }
-
-
-

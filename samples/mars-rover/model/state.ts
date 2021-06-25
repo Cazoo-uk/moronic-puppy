@@ -1,6 +1,5 @@
-import { Map }  from "immutable"
-
-;/*
+import {Map} from 'immutable';
+/*
  * Basic domain model for the Mars Rover kata
  */
 
@@ -10,7 +9,6 @@ export interface Position {
 }
 
 export type Bearing = 'N' | 'E' | 'S' | 'W';
-
 
 export interface RoverState {
   position: Position;
@@ -35,31 +33,31 @@ export function empty(): Simulation {
 
 const bearings: Array<Bearing> = ['N', 'E', 'S', 'W'];
 
-export function move(rover: RoverState, cmd: 'F'|'B') {
+export function move(rover: RoverState, cmd: 'F' | 'B') {
   const pos = rover.position;
-    let dy = 0, dx = 0;
+  let dy = 0,
+    dx = 0;
   switch (rover.bearing) {
     case 'N':
-          dy = 1
-          break;
+      dy = 1;
+      break;
     case 'W':
-          dx = -1
-          break;
+      dx = -1;
+      break;
     case 'S':
-      dy = -1
-          break;
+      dy = -1;
+      break;
     case 'E':
-      dx = 1
-          break;
+      dx = 1;
+      break;
   }
 
   if (cmd === 'B') {
-      dy *= -1
-    dx *= -1
+    dy *= -1;
+    dx *= -1;
   }
 
-      return {...rover, position: {x: pos.x + dx, y: pos.y + dy}};
-
+  return {...rover, position: {x: pos.x + dx, y: pos.y + dy}};
 }
 
 export function right(rover: RoverState) {

@@ -1,7 +1,7 @@
 /*
  * Events record the decisions that the domain has made in response to commands
  */
-import {Bearing} from './state'
+import {Bearing} from './state';
 export type RoverEvent = SimulationConfigured | RoverLanded | RoverMoved;
 
 export type SimulationConfigured = {
@@ -21,7 +21,7 @@ export type RoverLanded = {
 };
 
 export type RoverMoved = {
-  tag: 'Moved';
+  tag: 'RoverMoved';
   id: string;
   x: number;
   y: number;
