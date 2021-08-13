@@ -1,5 +1,4 @@
 import {Bearing, decide, empty, start, land, move, Repository} from './model';
-import {Ulid} from 'id128';
 
 /*
  * Handlers are the use-cases for our system and are directly invoked by Lambda functions

@@ -20,7 +20,9 @@ This sample uses a functional style oriented around two core functions:
 
 ![decide/apply loop](https://thinkbeforecoding.com/public/FreshPaint-21-2014.01.04-10.55.10.png)
 
-If you fancy extending the sample, try implementing collision detection. Add a new command `addObstacle` and write a decide for it. Should you be able to add an obstacle once the simulation is running? Should you be able to resize the planet once you've added obstacles?
+If you fancy extending the sample, start by making the x/y coordinate wrap around so that the rover can't move infinitely off the edge of the planet. 
+
+Try implementing collision detection. Add a new command `addObstacle` and write a decide for it. Should you be able to add an obstacle once the simulation is running? Should you be able to resize the planet once you've added obstacles?
 
 Update the move command so that if the rover encounters an obstacle, it stops the move early. Return two events, [`RoverMoved(new position)`, `ObstacleDetected(obstacle position)`].
 

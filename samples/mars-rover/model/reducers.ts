@@ -10,6 +10,7 @@ import {
  * They do not fail.
  */
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 type Reducer<TEvent extends RoverEvent> = (
   e: TEvent,
   state: Simulation
@@ -31,6 +32,7 @@ export function reduce(events: Array<RoverEvent>, state: Simulation) {
         break;
       case 'RoverMoved':
         state = onMove(e, state);
+        break;
     }
   }
   return state;

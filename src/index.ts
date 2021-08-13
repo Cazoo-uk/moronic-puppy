@@ -60,7 +60,7 @@ export class EventStore<TData extends Event = Event> {
     const result = await this.#client.query({
       TableName: this.#table,
       ExpressionAttributeValues: {
-        ':stream': {S: stream},
+        ':stream': {S: `STREAM#${stream}`},
       },
       KeyConditionExpression: 'PK = :stream',
     });
@@ -107,7 +107,7 @@ function eventInsert<TEvent extends Event = Event>(
     ConditionExpression: 'attribute_not_exists(PK)',
     ReturnValues: 'ALL_OLD',
     Item: {
-      PK: {S: stream},
+      PK: {S: `STREAM#${stream}`},
       SK: {S: `@${event.sequence}`},
       ID: {S: id},
       TYPE: {S: event.type},

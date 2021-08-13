@@ -30,7 +30,7 @@ const fail = (msg?: string): Failure => ({tag: 'Failure', msg, isOk: false});
  * */
 
 export type Decider<T extends RoverCommand> = (
-  cmd: RoverCommand,
+  cmd: T,
   state: Simulation
 ) => Decision;
 
