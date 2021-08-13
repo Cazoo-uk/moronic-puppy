@@ -1,10 +1,15 @@
 import {DynamoDB, AttributeValue} from '@aws-sdk/client-dynamodb';
 import {Ulid} from 'id128';
 
-export interface Event<TType = string, TPayload = unknown> {
+export interface Event<TType extends string = string, TPayload = unknown> {
   sequence: number;
   type: TType;
   data: TPayload;
+}
+
+export interface EventMetadata {
+  stream: string;
+  id: string;
 }
 
 export type Success = {tag: 'Success'; isOk: true; isError: false};
@@ -14,7 +19,7 @@ function isArray<T = unknown>(a: unknown): a is T[] {
   return Array.isArray(a);
 }
 
-export class EventStore<TEvent extends Event = Event> {
+export class EventStore<TData extends Event = Event> {
   #client: DynamoDB;
   #table: string;
 
@@ -25,17 +30,14 @@ export class EventStore<TEvent extends Event = Event> {
 
   public async write(
     stream: string,
-    events: Array<TEvent>
+    events: Array<TData>
   ): Promise<Success | Conflict>;
+  public async write(stream: string, event: TData): Promise<Success | Conflict>;
   public async write(
     stream: string,
-    event: TEvent
-  ): Promise<Success | Conflict>;
-  public async write(
-    stream: string,
-    events: Array<TEvent> | TEvent
+    events: Array<TData> | TData
   ): Promise<Success | Conflict> {
-    if (!isArray<TEvent>(events)) events = [events];
+    if (!isArray(events)) events = [events];
     try {
       const request = events.map(e => ({
         Put: eventInsert(this.#table, stream, e),
@@ -54,7 +56,7 @@ export class EventStore<TEvent extends Event = Event> {
     }
   }
 
-  public async *read(stream: string): AsyncGenerator<TEvent> {
+  public async *read(stream: string): AsyncGenerator<TData & EventMetadata> {
     const result = await this.#client.query({
       TableName: this.#table,
       ExpressionAttributeValues: {
@@ -64,16 +66,18 @@ export class EventStore<TEvent extends Event = Event> {
     });
 
     for (const item of result.Items || []) {
-      yield this.eventFromData(item);
+      yield this.eventFromData(stream, item);
     }
   }
 
-  private eventFromData(item: {[key: string]: AttributeValue}) {
+  private eventFromData(stream: string, item: {[key: string]: AttributeValue}) {
     return {
+      id: item.DATA.S,
+      stream,
       sequence: parseInt(item.SK.S!.slice(1)),
       type: item.TYPE.S || '',
       data: JSON.parse(item.DATA.S || ''),
-    } as TEvent;
+    } as TData & EventMetadata;
   }
 
   public async createTable() {

@@ -29,8 +29,8 @@ export async function given_an_empty_event_store() {
   return store;
 }
 
-export async function copy(g: AsyncGenerator<PonyJumped>) {
-  const result: Array<PonyJumped> = [];
+export async function copy<T>(g: AsyncGenerator<T>) {
+  const result: Array<T> = [];
   for await (const e of g) {
     result.push(e);
   }

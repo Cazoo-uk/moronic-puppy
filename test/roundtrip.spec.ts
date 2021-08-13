@@ -1,4 +1,4 @@
-import {EventStore, Success, Conflict} from '../src';
+import {EventStore, Success, Conflict, EventMetadata} from '../src';
 import {
   random_stream,
   copy,
@@ -10,7 +10,7 @@ import {
 describe('When writing to a new stream', () => {
   const streamName = random_stream();
   const event = jump(0, 'SparkleHooves', 5);
-  let result: Array<PonyJumped>;
+  let result: Array<PonyJumped & EventMetadata>;
 
   beforeAll(async () => {
     const store = await given_an_empty_event_store();
@@ -23,10 +23,20 @@ describe('When writing to a new stream', () => {
     expect(result).toHaveLength(1);
   });
 
-  it('should contain the event', async () => {
+  it('should contain the event', () => {
     const [e] = result;
     expect(e.data).toMatchObject(event.data);
     expect(e.type).toBe('PonyJumped');
+  });
+
+  it('should contain the stream', () => {
+    const [e] = result;
+    expect(e.stream).toEqual(streamName);
+  });
+
+  it('should have an id', () => {
+    const [e] = result;
+    expect(e.id).toBeTruthy();
   });
 });
 
@@ -54,7 +64,7 @@ describe('When writing to an existing stream', () => {
 describe('When writing multiple events', () => {
   const streamName = random_stream();
   let store: EventStore<PonyJumped>;
-  let result: Array<PonyJumped>;
+  let result: Array<PonyJumped & EventMetadata>;
 
   beforeAll(async () => {
     store = await given_an_empty_event_store();
@@ -66,14 +76,19 @@ describe('When writing multiple events', () => {
     result = await copy(store.read(streamName));
   });
 
-  it('should write 3 items', async () => {
+  it('should write 3 items', () => {
     expect(result).toHaveLength(3);
   });
 
-  it('should order the events correctly', async () => {
+  it('should order the events correctly', () => {
     expect(result[0].data.name).toBe('InitialHooves');
     expect(result[1].data.name).toBe('SecondHooves');
     expect(result[2].data.name).toBe('TertiaryHooves');
+  });
+
+  it('should assign incrementing ids', () => {
+    expect(result[0].id < result[1].id).toBeTruthy();
+    expect(result[1].id < result[2].id).toBeTruthy();
   });
 });
 

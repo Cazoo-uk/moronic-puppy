@@ -5,7 +5,7 @@ import {create, addRover, moveRover, get} from './handlers';
 
 test('create an move a rover', async () => {
   const db = local();
-  const table = process.env.TABLE_NAME;
+  const table = process.env.TABLE_NAME || 'events';
   const repo = new EventRepository(db, table!);
 
   const planetId = Ulid.generate().toCanonical();

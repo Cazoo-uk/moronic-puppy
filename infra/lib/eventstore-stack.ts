@@ -6,43 +6,41 @@ import * as s3 from '@aws-cdk/aws-s3';
 import * as iam from '@aws-cdk/aws-iam';
 
 interface EventStoreProps {
-  name?: string
+  name?: string;
 }
 
 class EventstoreDb extends cdk.Construct {
-
-  private name?: string
+  private name?: string;
 
   constructor(scope: cdk.Construct, id: string, props: EventStoreProps) {
-    super(scope, id)
-    this.name = props.name
+    super(scope, id);
+    this.name = props.name;
 
-    const kinesisStream = new kinesis.Stream(this, 'ChangeStream')
+    const kinesisStream = new kinesis.Stream(this, 'ChangeStream');
 
-    const archive = this.createArchiveBucket()
-    const table = this.createTable(kinesisStream)
-    const delivery = this.configDelivery(kinesisStream, archive)
+    const archive = this.createArchiveBucket();
+    const table = this.createTable(kinesisStream);
+    const delivery = this.configDelivery(kinesisStream, archive);
   }
 
   private createTable(kinesisStream: kinesis.Stream) {
     return new dynamodb.Table(this, 'Table', {
       tableName: `${this.name}-store`,
-      partitionKey: { name: 'PK', type: dynamodb.AttributeType.STRING },
-      sortKey: { name: 'SK', type: dynamodb.AttributeType.STRING },
-      kinesisStream
+      partitionKey: {name: 'PK', type: dynamodb.AttributeType.STRING},
+      sortKey: {name: 'SK', type: dynamodb.AttributeType.STRING},
+      kinesisStream,
     });
   }
 
   private createArchiveBucket() {
     return new s3.Bucket(this, 'ArchiveBucket', {
-      bucketName: `${this.name}-archive`
-    })
+      bucketName: `${this.name}-archive`,
+    });
   }
 
   private configDelivery(stream: kinesis.Stream, bucket: s3.Bucket) {
-
     const deliveryStreamRole = new iam.Role(this, 'DeliveryRole', {
-      assumedBy: new iam.ServicePrincipal("firehose.amazonaws.com"),
+      assumedBy: new iam.ServicePrincipal('firehose.amazonaws.com'),
     });
     stream.grantRead(deliveryStreamRole);
 
@@ -50,22 +48,22 @@ class EventstoreDb extends cdk.Construct {
       new iam.PolicyStatement({
         resources: [bucket.bucketArn, `${bucket.bucketArn}/*`],
         actions: [
-          "s3:AbortMultipartUpload",
-          "s3:GetBucketLocation",
-          "s3:GetObject",
-          "s3:ListBucket",
-          "s3:ListBucketMultipartUploads",
-          "s3:PutObject",
+          's3:AbortMultipartUpload',
+          's3:GetBucketLocation',
+          's3:GetObject',
+          's3:ListBucket',
+          's3:ListBucketMultipartUploads',
+          's3:PutObject',
         ],
-      }),
+      })
     );
 
     const hose = new firehose.CfnDeliveryStream(this, 'DeliveryStream', {
       deliveryStreamName: `${this.name}-delivery-stream`,
-      deliveryStreamType: "KinesisStreamAsSource",
+      deliveryStreamType: 'KinesisStreamAsSource',
       kinesisStreamSourceConfiguration: {
         kinesisStreamArn: stream.streamArn,
-        roleArn: deliveryStreamRole.roleArn
+        roleArn: deliveryStreamRole.roleArn,
       },
       s3DestinationConfiguration: {
         bucketArn: bucket.bucketArn,
@@ -73,7 +71,7 @@ class EventstoreDb extends cdk.Construct {
           intervalInSeconds: 300,
           sizeInMBs: 2,
         },
-        compressionFormat: "GZIP",
+        compressionFormat: 'GZIP',
         roleArn: deliveryStreamRole.roleArn,
       },
     });
@@ -84,13 +82,12 @@ class EventstoreDb extends cdk.Construct {
 }
 
 export class EventStoreStack extends cdk.Stack {
-
-  db: EventstoreDb
+  db: EventstoreDb;
 
   constructor(scope: cdk.Construct, id: string, props: cdk.StackProps = {}) {
     super(scope, id, props);
     this.db = new EventstoreDb(this, 'EventStore', {
-      name: props.stackName
-    })
+      name: props.stackName,
+    });
   }
 }
