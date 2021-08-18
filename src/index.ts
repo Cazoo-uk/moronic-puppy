@@ -1,5 +1,6 @@
 import {DynamoDB, AttributeValue} from '@aws-sdk/client-dynamodb';
 import {Ulid} from 'id128';
+export * from './projector';
 
 export interface Event<TType extends string = string, TPayload = unknown> {
   sequence: number;

@@ -1,146 +1,16 @@
+import {Chunk, EventMetadata, ProjectorSource, ProjectorState} from '../src';
 import * as football from './football';
-import {EventMetadata} from '../src';
-/*
- * When we're firing up a projector, we usually want to play back all events from
- * the beginning of time. There's some sleight of hand we have to pull to make sure that
- * we can smoothly handle the archive (stored in S3) and then switch to handling events
- * as they arrive (from a dynamo change stream).
- *
- * The dynamo change stream provides a live feed of events over the last 24 hours. The
- * S3 archive provides "chunks" - files containing a batch of events collected from the
- * live feed.
- *
- * We make the new projector keep track of its mode (catch_up, transition, live)
- * and a "payload of state". When a new projector receives a message, it first checks to
- * see if it's in catch_up mode.
- *
- * If so, it ignores the message it was passed and instead reads from the
- * archive, one chunk at a time. Each time we update our projceted state, we also
- * record the projector state to the datastore, with mode "catch_up" and the payload
- * {chunk, last_event}
- *
- * If we time out before processing the final chunk, we return an error from our lambda.
- * This means that we'll be passed the _same_ message over and over until we process it
- * successfully.
- *
- * When we've read the final chunk from the archive, we record our mode as "transition"
- * and our payload as {last_chunk last_event}. In transition mode, we read through the
- * live stream, returning success from our lambda, until we hit an event > last_event.
- *
- * When we process our first new live event, we record our mode as "live" and our payload
- * as {last_chunk, last_event}.
- *
- * If we need to return a projector to catch up mode, we need to read through all chunks
- * since last_chunk, ignoring any event <= last_event.
- */
 
-interface EmptyState {
-  type: 'EMPTY';
+interface ProjectorContextParams {
+  initialState?: ProjectorState;
+  archive?: Array<Chunk<Goal>>;
+  live?: Array<Goal>;
 }
 
-interface LiveState {
-  type: 'LIVE';
-  payload: {
-    lastEvent: string;
-  };
-}
-
-interface CatchupState {
-  type: 'CATCHUP';
-  payload: {
-    chunk: string;
-    lastEvent: string;
-  };
-}
-
-type ActiveState = CatchupState | LiveState;
-type ProjectorState = EmptyState | ActiveState;
-
-interface StateStore {
-  get(): Promise<ProjectorState>;
-  put(s: ProjectorState): Promise<void>;
-}
-
-interface Chunk<TEvent extends EventMetadata> {
-  id: string;
-  events: Array<TEvent>;
-}
-
-type Archive<TEvent extends EventMetadata> = (
-  currentChunk: string
-) => AsyncGenerator<Chunk<TEvent>>;
-
-class ProjectorSource<TEvent extends EventMetadata> {
-  #states: StateStore;
-  #archive: Archive<TEvent>;
-  #live: AsyncGenerator<TEvent>;
-  #onEvent: (e: TEvent) => Promise<void>;
-
-  constructor(
-    archive: Archive<TEvent>,
-    live: AsyncGenerator<TEvent>,
-    onEvent: (e: TEvent) => Promise<void>,
-    stateStore: StateStore
-  ) {
-    this.#states = stateStore;
-    this.#archive = archive;
-    this.#live = live;
-    this.#onEvent = onEvent;
-  }
-
-  async process<TState extends ActiveState>(
-    e: TEvent,
-    state: TState
-  ): Promise<TState> {
-    if (e.id <= state.payload.lastEvent) return state;
-    await this.#onEvent(e);
-    const s = {...state};
-    s.payload.lastEvent = e.id;
-    return s;
-  }
-
-  async runCatchup(state: CatchupState) {
-    for await (const chunk of this.#archive(state.payload.chunk)) {
-      state = {
-        type: 'CATCHUP',
-        payload: {chunk: chunk.id, lastEvent: state.payload.lastEvent},
-      };
-      for (const e of chunk.events) {
-        state = await this.process(e, state);
-        await this.#states.put(state);
-      }
-    }
-
-    const liveState = {
-      type: 'LIVE' as const,
-      payload: {lastEvent: state.payload.lastEvent},
-    };
-    await this.runLive(liveState);
-  }
-
-  async runLive(state: LiveState) {
-    for await (const e of this.#live) {
-      state = await this.process(e, state);
-      this.#states.put(state);
-    }
-  }
-
-  async run() {
-    const state = await this.#states.get();
-    if (state.type === 'EMPTY') {
-      await this.runCatchup({
-        type: 'CATCHUP',
-        payload: {
-          chunk: '',
-          lastEvent: '',
-        },
-      });
-    } else if (state.type === 'CATCHUP') {
-      await this.runCatchup(state);
-    } else {
-      await this.runLive(state);
-    }
-  }
+interface ProjectorContext {
+  states: Array<ProjectorState>;
+  processed: Array<Goal>;
+  run: () => Promise<void>;
 }
 
 const goal = (
@@ -186,6 +56,47 @@ function spyStateHandler(states: Array<ProjectorState>) {
   };
 }
 
+const given_a_projector = (ctx: ProjectorContextParams) => {
+  const states: Array<ProjectorState> = [];
+  if (ctx.initialState) states.push(ctx.initialState);
+  const archive = ctx.archive || [];
+  const live = ctx.live || [];
+  const processed: Array<Goal> = [];
+  return {
+    states,
+    processed,
+    run: async () => {
+      await new ProjectorSource<Goal>(
+        _ => gen(archive),
+        gen(live),
+        spyProjector(processed),
+        spyStateHandler(states)
+      ).run();
+    },
+  };
+};
+
+const chunk1 = 'CHUNK-1';
+const chunk2 = 'CHUNK-2';
+
+const catchup = (chunk = '', lastEvent = '') => ({
+  type: 'CATCHUP' as const,
+  payload: {
+    chunk,
+    lastEvent,
+  },
+});
+
+const live = (lastEvent = '') => ({
+  type: 'LIVE' as const,
+  payload: {lastEvent},
+});
+
+const chunk = (chunkId: string, ...events: Array<Goal>) => ({
+  id: chunkId,
+  events,
+});
+
 describe('For a projector with empty state', () => {
   /*
    * New projectors start in the empty state.
@@ -202,33 +113,23 @@ describe('For a projector with empty state', () => {
      * corresponding to the last processed event
      * */
 
-    const states: Array<ProjectorState> = [];
-    const archived: Array<Chunk<Goal>> = [];
-    const elems: Array<Goal> = [];
-    const live: Array<Goal> = [goal(1)];
-
-    const source = new ProjectorSource<Goal>(
-      _ => gen(archived),
-      gen(live),
-      spyProjector(elems),
-      spyStateHandler(states)
-    );
+    let ctx: ProjectorContext;
+    const event = goal(1);
 
     beforeAll(async () => {
-      await source.run();
+      ctx = given_a_projector({
+        live: [event],
+      });
+      await ctx.run();
     });
 
     it('should record a live state', () => {
-      expect(states).toHaveLength(1);
-      expect(states[0].type).toEqual('LIVE');
-    });
-
-    it('should have the correct last event', () => {
-      expect(states[0]).toHaveProperty('payload.lastEvent', live[0].id);
+      expect(ctx.states).toHaveLength(1);
+      expect(ctx.states[0]).toEqual(live('1'));
     });
 
     it('should process the event', () => {
-      expect(elems[0]).toBe(live[0]);
+      expect(ctx.processed).toContain(event);
     });
   });
 
@@ -239,46 +140,37 @@ describe('For a projector with empty state', () => {
      * between the two sources
      */
 
-    const states: Array<ProjectorState> = [];
-    const elems: Array<Goal> = [];
+    const goal1 = goal(1);
+    const goal2 = goal(2);
 
-    const archived: Array<Chunk<Goal>> = [
-      {id: 'chunk-1', events: [goal(1, {player: 'Jimmy Backfoot'})]},
-    ];
-    const live: Array<Goal> = [goal(2, {player: 'Sidney Carmichael'})];
-
-    const source = new ProjectorSource(
-      _ => gen(archived),
-      gen(live),
-      spyProjector(elems),
-      spyStateHandler(states)
-    );
-
+    let ctx: ProjectorContext;
     beforeAll(async () => {
-      await source.run();
+      ctx = given_a_projector({
+        archive: [chunk(chunk1, goal1)],
+        live: [goal2],
+      });
+      await ctx.run();
     });
 
     it('should have recorded two states', () => {
-      expect(states).toHaveLength(2);
+      expect(ctx.states).toHaveLength(2);
     });
 
     it('should start in catchup', () => {
-      expect(states[0].type).toEqual('CATCHUP');
-      expect(states[0]).toHaveProperty('payload.lastEvent', '1');
+      expect(ctx.states[0]).toEqual(catchup(chunk1, '1'));
     });
 
     it('should record a live state', () => {
-      expect(states[1].type).toEqual('LIVE');
-      expect(states[1]).toHaveProperty('payload.lastEvent', '2');
+      expect(ctx.states[1]).toEqual(live('2'));
     });
 
     it('should process both events', () => {
-      expect(elems).toHaveLength(2);
+      expect(ctx.processed).toHaveLength(2);
     });
 
     it('should process the archived events first', () => {
-      expect(elems[0].data.player).toEqual('Jimmy Backfoot');
-      expect(elems[1].data.player).toEqual('Sidney Carmichael');
+      expect(ctx.processed[0].sequence).toEqual(1);
+      expect(ctx.processed[1].sequence).toEqual(2);
     });
   });
 
@@ -288,43 +180,32 @@ describe('For a projector with empty state', () => {
      * a live event. The live event is already in the archive so we should not process
      * it a second time.
      */
-    const states: Array<ProjectorState> = [];
-    const elems: Array<Goal> = [];
 
-    const archived: Array<Chunk<Goal>> = [
-      {
-        id: 'chunk-1',
-        events: [
-          goal(1, {player: 'Jimmy Backfoot'}),
-          goal(2, {player: 'Sidney Carmichael'}),
-        ],
-      },
-    ];
-    const live: Array<Goal> = [goal(2, {player: 'Sidney Carmichael again'})];
-
-    const source = new ProjectorSource(
-      _ => gen(archived),
-      gen(live),
-      spyProjector(elems),
-      spyStateHandler(states)
-    );
-
+    let ctx: ProjectorContext;
     beforeAll(async () => {
-      await source.run();
+      ctx = given_a_projector({
+        archive: [chunk(chunk1, goal(1), goal(2))],
+      });
+      await ctx.run();
     });
 
     it('should not process the duplicate event', () => {
-      expect(elems).toHaveLength(2);
+      expect(ctx.processed).toHaveLength(2);
     });
 
     it('should process the archived events first', () => {
-      expect(elems[0].data.player).toEqual('Jimmy Backfoot');
-      expect(elems[1].data.player).toEqual('Sidney Carmichael');
+      expect(ctx.processed).toEqual([goal(1), goal(2)]);
     });
   });
 });
 
 describe('For a projector in the catchup state', () => {
+  /*
+   * So long as a projector is in catchup state, it should read from the archive, updating
+   * its state to point to the current chunk and event. Once it reaches the end of the archive
+   * it should move to the live state.
+   */
+
   describe('When the current chunk is part read', () => {
     /*
      * In this scenario, our projector has run previously and was processing chunk-1.
@@ -334,73 +215,113 @@ describe('For a projector in the catchup state', () => {
      * before handling the live events.
      * */
 
-    const chunk1 = 'CHUNK-1';
-    const chunk2 = 'CHUNK-2';
-
-    const states: Array<ProjectorState> = [
-      {
-        type: 'CATCHUP',
-        payload: {
-          chunk: chunk1,
-          lastEvent: '2',
-        },
-      },
-    ];
-    const elems: Array<Goal> = [];
-    const archive: Array<Chunk<Goal>> = [
-      {
-        id: chunk1,
-        events: [
-          goal(1, {player: 'Jimmy Backfoot'}),
-          goal(2, {player: 'Sidney Carmichael'}),
-          goal(3, {player: 'Albert Bagenhot'}),
-        ],
-      },
-      {
-        id: chunk2,
-        events: [goal(4, {player: 'Jimmy Backfoot'})],
-      },
-    ];
-
-    const live: Array<Goal> = [];
-
-    const source = new ProjectorSource<Goal>(
-      _ => gen(archive),
-      gen(live),
-      spyProjector(elems),
-      spyStateHandler(states)
-    );
+    let ctx: ProjectorContext;
 
     beforeAll(async () => {
-      await source.run();
+      ctx = given_a_projector({
+        initialState: catchup(chunk1, '2'),
+        archive: [
+          chunk(
+            chunk1,
+            goal(1, {player: 'Jimmy Backfoot'}),
+            goal(2, {player: 'Sidney Carmichael'}),
+            goal(3, {player: 'Albert Bagenhot'})
+          ),
+          chunk(chunk2, goal(4, {player: 'Jimmy Backfoot'})),
+        ],
+      });
+      await ctx.run();
     });
 
     it('should process the new event in chunk-1', () => {
-      const goal3 = archive[0].events[2];
-      expect(elems[0]).toEqual(goal3);
+      expect(ctx.processed[0].sequence).toEqual(3);
     });
 
     it('should process the new event in chunk-2', () => {
-      const goal4 = archive[1].events[0];
-      expect(elems[1]).toEqual(goal4);
+      expect(ctx.processed[1].sequence).toEqual(4);
     });
 
     it('should have processed two events', () => {
-      expect(elems).toHaveLength(2);
+      expect(ctx.processed).toHaveLength(2);
     });
 
     it('should update its state to point at chunk-2', () => {
-      expect(states.pop()).toEqual({
-        type: 'CATCHUP',
-        payload: {
-          chunk: chunk2,
-          lastEvent: '4',
-        },
-      });
+      expect(ctx.states.pop()).toEqual(catchup(chunk2, '4'));
     });
   });
 
-  describe('When the current chunk is completely read', () => {});
+  describe('When the current chunk is completely read', () => {
+    /*
+     * In this scenario, we have previously read chunk-1 and exited.
+     * When we start up again, the first archived event is in chunk2.
+     */
+
+    let ctx: ProjectorContext;
+    const newEvent = goal(3, {player: 'Jimmy Backfoot'});
+
+    beforeAll(async () => {
+      ctx = given_a_projector({
+        initialState: catchup(chunk1, '2'),
+        archive: [
+          chunk(
+            chunk1,
+            goal(1, {player: 'Jimmy Backfoot'}),
+            goal(2, {player: 'Sidney Carmichael'})
+          ),
+          chunk(chunk2, newEvent),
+        ],
+      });
+      await ctx.run();
+    });
+
+    it('should process the new event in chunk-2', () => {
+      expect(ctx.processed).toEqual([newEvent]);
+    });
+
+    it('should update its state to point at chunk-2', () => {
+      expect(ctx.states.pop()).toEqual(catchup(chunk2, newEvent.id));
+    });
+  });
 });
 
-describe('For a projector in the live state', () => {});
+describe('For a projector in the live state', () => {
+  /*
+   * When a projector is in the live state, it should only read the events in the live queue
+   * and should not read from the archive.
+   */
+
+  describe('When processing live events', () => {
+    let ctx: ProjectorContext;
+
+    beforeAll(async () => {
+      ctx = given_a_projector({
+        archive: [chunk(chunk1, goal(1))],
+        initialState: live(),
+        live: [goal(2)],
+      });
+      await ctx.run();
+    });
+
+    it('should process the live event and disregard the archived', () => {
+      expect(ctx.processed).toEqual([goal(2)]);
+    });
+  });
+
+  describe('When a live event is replayed', () => {
+    let ctx: ProjectorContext;
+    const event = goal(2);
+
+    beforeAll(async () => {
+      ctx = given_a_projector({
+        archive: [chunk(chunk1, goal(1))],
+        initialState: live(event.id),
+        live: [event],
+      });
+      await ctx.run();
+    });
+
+    it('should not process the event a second time', () => {
+      expect(ctx.processed).toEqual([]);
+    });
+  });
+});
