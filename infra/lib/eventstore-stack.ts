@@ -27,7 +27,8 @@ class EventstoreDb extends cdk.Construct {
     return new dynamodb.Table(this, 'Table', {
       tableName: `${this.name}-store`,
       partitionKey: {name: 'PK', type: dynamodb.AttributeType.STRING},
-      sortKey: {name: 'SK', type: dynamodb.AttributeType.STRING},
+      sortKey: {name: 'SK', type: dynamodb.AttributeType.NUMBER},
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
       kinesisStream,
     });
   }
@@ -58,6 +59,17 @@ class EventstoreDb extends cdk.Construct {
       })
     );
 
+    const firehosePolicy = new iam.Policy(this, 'FirehosePolicy', {
+        roles: [deliveryStreamRole],
+        statements: [
+            new iam.PolicyStatement({
+               effect: iam.Effect.ALLOW,
+                 resources: [stream.streamArn],
+                 actions: ['kinesis:DescribeStream', 'kinesis:GetShardIterator', 'kinesis:GetRecords'],
+                }),
+            ],
+        });
+
     const hose = new firehose.CfnDeliveryStream(this, 'DeliveryStream', {
       deliveryStreamName: `${this.name}-delivery-stream`,
       deliveryStreamType: 'KinesisStreamAsSource',
@@ -76,7 +88,7 @@ class EventstoreDb extends cdk.Construct {
       },
     });
 
-    hose.addDependsOn(deliveryStreamRole.node.defaultChild as iam.CfnRole);
+    hose.addDependsOn(firehosePolicy.node.defaultChild as iam.CfnRole);
     return hose;
   }
 }

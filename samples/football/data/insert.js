@@ -10,8 +10,12 @@ async function writeEvent(store, gameId, seq, type, data) {
   });
 }
 
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 async function main() {
-  const store = new es.EventStore(new DynamoDB(), 'bob-test-eventstore-store');
+  const store = new es.EventStore(new DynamoDB(), 'bob-eventstore-store');
   const rl = readline.createInterface({
     input: process.stdin,
     crlfDelay: Infinity,
@@ -21,6 +25,7 @@ async function main() {
     const [game, seq, type, data] = line.split('\t');
     console.log(game, seq, type);
     await writeEvent(store, game, seq, type, data);
+    await sleep(2000);
   }
 }
 

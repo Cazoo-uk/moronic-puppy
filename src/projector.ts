@@ -45,7 +45,7 @@ interface LiveState {
   };
 }
 
-interface CatchupState {
+export interface CatchupState {
   type: 'CATCHUP';
   payload: {
     chunk: string;
@@ -66,7 +66,7 @@ export interface Chunk<TEvent extends EventMetadata> {
   events: Array<TEvent>;
 }
 
-type Archive<TEvent extends EventMetadata> = (
+export type Archive<TEvent extends EventMetadata> = (
   currentChunk: string
 ) => AsyncGenerator<Chunk<TEvent>>;
 

@@ -2,6 +2,7 @@
   "extends": "./node_modules/gts/tsconfig-google.json",
   "compilerOptions": {
     "rootDir": ".",
+    "lib": ["es2020", "dom"],
     "outDir": "dist"
   },
   "include": [

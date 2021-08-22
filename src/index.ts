@@ -13,6 +13,8 @@ export interface EventMetadata {
   id: string;
 }
 
+export type Loaded<T> = T & EventMetadata;
+
 export type Success = {tag: 'Success'; isOk: true; isError: false};
 export type Conflict = {tag: 'Conflict'; isOk: false; isError: true};
 
@@ -85,7 +87,7 @@ export class EventStore<TData extends Event = Event> {
     await this.#client.createTable({
       AttributeDefinitions: [
         {AttributeName: 'PK', AttributeType: 'S'},
-        {AttributeName: 'SK', AttributeType: 'S'},
+        {AttributeName: 'SK', AttributeType: 'N'},
       ],
       KeySchema: [
         {AttributeName: 'PK', KeyType: 'HASH'},
@@ -108,8 +110,8 @@ function eventInsert<TEvent extends Event = Event>(
     ConditionExpression: 'attribute_not_exists(PK)',
     ReturnValues: 'ALL_OLD',
     Item: {
-      PK: {S: `STREAM#${stream}`},
-      SK: {S: `@${event.sequence}`},
+      PK: {S: stream},
+      SK: {N: `event.sequence`},
       ID: {S: id},
       TYPE: {S: event.type},
       DATA: {S: JSON.stringify(event.data)},

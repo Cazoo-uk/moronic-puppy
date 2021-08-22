@@ -4,8 +4,8 @@ import * as cdk from '@aws-cdk/core';
 import {EventStoreStack} from '../lib/eventstore-stack';
 
 const app = new cdk.App();
-new EventStoreStack(app, 'bob-test-EventStore', {
-  stackName: 'bob-test-eventstore',
+new EventStoreStack(app, 'bob-EventStore', {
+  stackName: 'bob-eventstore',
   /* If you don't specify 'env', this stack will be environment-agnostic.
    * Account/Region-dependent features and context lookups will not work,
    * but a single synthesized template can be deployed anywhere. */
