@@ -1,5 +1,5 @@
 import {Repository, RoverEvent, empty, reduce} from './model';
-import {EventStore, Event} from '../../src';
+import {EventStore, Event} from '@moronic-puppy/core';
 import {DynamoDB} from '@aws-sdk/client-dynamodb';
 
 export class EventRepository implements Repository {

@@ -1,7 +1,18 @@
 import {Ulid} from 'id128';
-import {local} from '../../test/helpers';
-import {EventRepository} from './infra';
-import {create, addRover, moveRover, get} from './handlers';
+import {EventRepository} from '../lib/infra';
+import {create, addRover, moveRover, get} from '../lib/handlers';
+import {DynamoDB} from '@aws-sdk/client-dynamodb';
+
+export function local() {
+  return new DynamoDB({
+    endpoint: 'http://127.0.0.1:8000',
+    region: 'eu-west-1',
+    credentials: {
+      accessKeyId: 'fake-id',
+      secretAccessKey: 'fake-secret',
+    },
+  });
+}
 
 test('create an move a rover', async () => {
   const db = local();

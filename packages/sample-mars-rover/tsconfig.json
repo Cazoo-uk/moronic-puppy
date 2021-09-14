@@ -1,0 +1,14 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+      "outDir": "dist",
+      "paths": {
+          "@moronic-puppy/core": ["../moronic-puppy/lib"]
+      }
+  },
+  "include": [
+    "lib/**/*.ts",
+    "test/**/*.ts"
+  ],
+  "references": [{ "path": "../moronic-puppy/tsconfig.build.json" }]
+}

@@ -17,5 +17,8 @@
   "exclude": ["node_modules", "**/*/dist"],
   "references": [
     {"path": "./packages/moronic-puppy"}
-  ]
+  ],
+  "paths": {
+    "@moronic-puppy/core": ["packages/moronic-puppy"]
+  }
 }

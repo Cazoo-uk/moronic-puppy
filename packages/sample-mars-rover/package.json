@@ -1,0 +1,20 @@
+{
+  "name": "@moronic-puppy/sample-mars-rover",
+  "version": "1.0.0",
+  "description": "This sample implements a Mars Rover kata with an event-sourced model. The domain has three commands:",
+  "main": "index.js",
+  "directories": {
+    "lib": "lib",
+    "test": "test"
+  },
+  "scripts": {
+    "test": "jest"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "id128": "^1.6.6",
+    "@moronic-puppy/core": "^0.1.0",
+    "immutable": "^4.0.0-rc.14"
+  }
+}

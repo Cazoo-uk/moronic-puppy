@@ -1,9 +1,11 @@
 import {Simulation} from './state';
 import {RoverEvent} from './events';
 
-export {Bearing, empty} from './state';
-export {RoverEvent} from './events';
-export {Success, Failure, Decision, decide} from './deciders';
+export type {Bearing } from './state';
+export {empty} from './state'
+export type {RoverEvent} from './events';
+export {decide} from './deciders';
+export type {Success, Failure, Decision, } from './deciders';
 export {reduce} from './reducers';
 
 export {start, land, move} from './commands';

@@ -8,7 +8,7 @@ import {
   Decision,
   RoverEvent,
   Bearing,
-} from './model';
+} from '../lib/model';
 
 const rover_id = 'rory';
 
