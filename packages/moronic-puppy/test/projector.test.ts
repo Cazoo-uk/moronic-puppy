@@ -1,4 +1,4 @@
-import {Chunk, EventMetadata, ProjectorSource, ProjectorState} from '../src';
+import {Chunk, EventMetadata, ProjectorSource, ProjectorState} from '../lib';
 import * as football from './football';
 
 interface ProjectorContextParams {

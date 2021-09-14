@@ -3,7 +3,7 @@ const es = require('../../../dist/src');
 const readline = require('readline');
 
 async function writeEvent(store, gameId, seq, type, data) {
-  await store.write(gameId, {
+  return await store.write(gameId, {
     sequence: seq,
     type,
     data,
@@ -23,8 +23,8 @@ async function main() {
 
   for await (const line of rl) {
     const [game, seq, type, data] = line.split('\t');
-    console.log(game, seq, type);
-    await writeEvent(store, game, seq, type, data);
+    const result = await writeEvent(store, game, parseInt(seq), type.slice(1,-1), JSON.parse(data));
+    console.log(result);
     await sleep(2000);
   }
 }

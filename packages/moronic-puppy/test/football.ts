@@ -1,4 +1,4 @@
-import {Event} from '../src';
+import {Event} from '../lib';
 
 type Side = 'HOME' | 'AWAY';
 

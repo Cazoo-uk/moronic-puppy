@@ -1,13 +1,21 @@
 {
-  "extends": "./node_modules/gts/tsconfig-google.json",
   "compilerOptions": {
-    "rootDir": ".",
+    "noLib": false,
+    "noImplicitAny": true,
+    "removeComments": true,
+    "target": "es6",
+    "sourceMap": true,
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
     "lib": ["es2020", "dom"],
-    "outDir": "dist"
+    "forceConsistentCasingInFileNames": true,
+    "isolatedModules": true
   },
-  "include": [
-    "samples/**/*.ts",
-    "src/**/*.ts",
-    "test/**/*.ts"
+  "exclude": ["node_modules", "**/*/dist"],
+  "references": [
+    {"path": "./packages/moronic-puppy"}
   ]
 }

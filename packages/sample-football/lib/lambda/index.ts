@@ -1,4 +1,4 @@
-import { Event, Loaded } from '../../src';
+import { Event, Loaded } from '../../../../src';
 
 type Side = 'HOME' | 'AWAY';
 
@@ -14,7 +14,7 @@ export interface GoalPayload {
 
 type GoalScored = Event<'GOAL_SCORED', GoalPayload>;
 type KickOff = Event<'GAME_STARTED', KickOffPayload>;
-type FootballEvent = Loaded<GoalScored | KickOff> | Event
+export type FootballEvent = Loaded<GoalScored | KickOff> | Event
 
 interface Game {
     home: string
@@ -48,6 +48,7 @@ async function updateScore(event: Loaded<GoalScored>) {
     const game = games[event.stream];
     if (undefined === game) {
         console.log(`Unrecognised game id ${event.stream}`)
+        return
     }
 
     if (event.data.side === 'HOME') {
@@ -59,9 +60,16 @@ async function updateScore(event: Loaded<GoalScored>) {
 
 export async function processEvent(event: FootballEvent) {
     if (isKickoff(event)) {
+        console.log(`New game ${event.stream}: ${event.data.home} vs ${event.data.away}`)
         await createGame(event)
     }
     else if (isGoal(event)) {
+        console.log(`${event.data.side} goal`)
         await updateScore(event)
+    } else {
+        console.log(`Disregarding ${event.type} event`)
+        return
     }
+
+    console.log(JSON.stringify(games))
 }

@@ -1,4 +1,4 @@
-import {EventMetadata} from '../src';
+import { EventMetadata } from ".";
 
 /*
  * When we're firing up a projector, we usually want to play back all events from
@@ -35,18 +35,18 @@ import {EventMetadata} from '../src';
  */
 
 interface EmptyState {
-  type: 'EMPTY';
+  type: "EMPTY";
 }
 
 interface LiveState {
-  type: 'LIVE';
+  type: "LIVE";
   payload: {
     lastEvent: string;
   };
 }
 
 export interface CatchupState {
-  type: 'CATCHUP';
+  type: "CATCHUP";
   payload: {
     chunk: string;
     lastEvent: string;
@@ -94,7 +94,7 @@ export class ProjectorSource<TEvent extends EventMetadata> {
   ): Promise<TState> {
     if (e.id <= state.payload.lastEvent) return state;
     await this.#onEvent(e);
-    const s = {...state};
+    const s = { ...state };
     s.payload.lastEvent = e.id;
     return s;
   }
@@ -102,8 +102,8 @@ export class ProjectorSource<TEvent extends EventMetadata> {
   async runCatchup(state: CatchupState) {
     for await (const chunk of this.#archive(state.payload.chunk)) {
       state = {
-        type: 'CATCHUP',
-        payload: {chunk: chunk.id, lastEvent: state.payload.lastEvent},
+        type: "CATCHUP",
+        payload: { chunk: chunk.id, lastEvent: state.payload.lastEvent },
       };
       for (const e of chunk.events) {
         state = await this.process(e, state);
@@ -112,8 +112,8 @@ export class ProjectorSource<TEvent extends EventMetadata> {
     }
 
     const liveState = {
-      type: 'LIVE' as const,
-      payload: {lastEvent: state.payload.lastEvent},
+      type: "LIVE" as const,
+      payload: { lastEvent: state.payload.lastEvent },
     };
     await this.runLive(liveState);
   }
@@ -127,15 +127,15 @@ export class ProjectorSource<TEvent extends EventMetadata> {
 
   async run() {
     const state = await this.#states.get();
-    if (state.type === 'EMPTY') {
+    if (state.type === "EMPTY") {
       await this.runCatchup({
-        type: 'CATCHUP',
+        type: "CATCHUP",
         payload: {
-          chunk: '',
-          lastEvent: '',
+          chunk: "",
+          lastEvent: "",
         },
       });
-    } else if (state.type === 'CATCHUP') {
+    } else if (state.type === "CATCHUP") {
       await this.runCatchup(state);
     } else {
       await this.runLive(state);

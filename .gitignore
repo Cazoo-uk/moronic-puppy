@@ -80,3 +80,4 @@ TEST-results.xml
 dist/
 .wallaby.conf.js
 build/
+cdk.out/

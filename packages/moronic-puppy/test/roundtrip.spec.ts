@@ -1,4 +1,4 @@
-import {EventStore, Success, Conflict, EventMetadata} from '../src';
+import {EventStore, Success, Conflict, EventMetadata} from '../lib';
 import {
   random_stream,
   copy,

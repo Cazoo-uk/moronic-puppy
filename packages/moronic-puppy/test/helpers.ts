@@ -1,5 +1,5 @@
 import {DynamoDB} from '@aws-sdk/client-dynamodb';
-import {EventStore} from '../src';
+import {EventStore} from '../lib';
 
 export function local() {
   return new DynamoDB({
