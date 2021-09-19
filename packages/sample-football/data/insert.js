@@ -1,6 +1,7 @@
-const {DynamoDB} = require('@aws-sdk/client-dynamodb');
-const es = require('../../../dist/src');
-const readline = require('readline');
+const { DynamoDB } = require("@aws-sdk/client-dynamodb");
+const es = require("@moronic-puppy/core");
+const readline = require("readline");
+const table = process.env.TABLE_NAME || "__no_table__";
 
 async function writeEvent(store, gameId, seq, type, data) {
   return await store.write(gameId, {
@@ -11,21 +12,27 @@ async function writeEvent(store, gameId, seq, type, data) {
 }
 
 function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 async function main() {
-  const store = new es.EventStore(new DynamoDB(), 'bob-eventstore-store');
+  const store = new es.EventStore(new DynamoDB(), table);
   const rl = readline.createInterface({
     input: process.stdin,
     crlfDelay: Infinity,
   });
 
   for await (const line of rl) {
-    const [game, seq, type, data] = line.split('\t');
-    const result = await writeEvent(store, game, parseInt(seq), type.slice(1,-1), JSON.parse(data));
-    console.log(result);
-    await sleep(2000);
+    const [game, seq, type, data] = line.split("\t");
+    const result = await writeEvent(
+      store,
+      game,
+      parseInt(seq),
+      type,
+      JSON.parse(data)
+    );
+    console.log(game, seq, result);
+    await sleep(500);
   }
 }
 

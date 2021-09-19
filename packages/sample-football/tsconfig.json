@@ -1,0 +1,19 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "paths": {
+      "@moronic-puppy/core": ["../moronic-puppy/lib"],
+      "@moronic-puppy/core/projector": ["../moronic-puppy/lib/projector"],
+      "@moronic-puppy/core/projector.cloud": [
+        "../moronic-puppy/lib/projector.cloud"
+      ],
+      "@moronic-puppy/cdk-eventstore": ["../cdk-eventstore/lib"]
+    }
+  },
+  "include": ["lib/**/*.ts", "test/**/*.ts"],
+  "references": [
+    { "path": "../moronic-puppy/tsconfig.build.json" },
+    { "path": "../cdk-eventstore/tsconfig.json" }
+  ]
+}

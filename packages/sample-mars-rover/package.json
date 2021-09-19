@@ -13,8 +13,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "id128": "^1.6.6",
     "@moronic-puppy/core": "^0.1.0",
+    "id128": "^1.6.6",
     "immutable": "^4.0.0-rc.14"
   }
 }

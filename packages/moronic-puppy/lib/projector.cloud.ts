@@ -21,6 +21,7 @@ export function readS3<TEvent extends EventMetadata>(
 ): Archive<TEvent> {
   return async function* (currentChunk: string) {
     const client = params.client || new S3({});
+    console.log(params.bucket);
     for await (const file of listFiles(params.bucket, client, currentChunk)) {
       if (file === undefined) continue;
       const events = await readEvents<TEvent>(file, params.bucket, client);
