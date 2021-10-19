@@ -27,5 +27,6 @@ eventStream -down-> archive
 eventStream --> router
 router --> queue
 queue --> projector
+archive --> projector
 
 @enduml
