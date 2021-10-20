@@ -1,0 +1,32 @@
+@startuml Moronic Puppy Architecture
+
+!define AWSPuml https://raw.githubusercontent.com/awslabs/aws-icons-for-plantuml/v11.1/dist
+!includeurl AWSPuml/AWSCommon.puml
+
+!includeurl AWSPuml/AWSSimplified.puml
+!includeurl AWSPuml/General/Users.puml
+!includeurl AWSPuml/Analytics/Kinesis.puml
+!includeurl AWSPuml/ApplicationIntegration/SimpleQueueService.puml
+!includeurl AWSPuml/Storage/SimpleStorageService.puml
+!includeurl AWSPuml/Compute/Lambda.puml
+!includeurl AWSPuml/Database/DynamoDB.puml
+
+left to right direction
+
+Users(sources, "Events", "")
+DynamoDB(eventStore, "Event Store", "Stores events")
+Kinesis(eventStream, "Event Stream", "")
+Lambda(router, "Router", "")
+SimpleQueueService(queue, "FIFO Queue", "")
+Lambda(projector, "Projector", "")
+SimpleStorageService(archive, "Archive", "")
+
+sources --> eventStore
+eventStore --> eventStream
+eventStream -down-> archive
+eventStream --> router
+router --> queue
+queue --> projector
+archive --> projector
+
+@enduml

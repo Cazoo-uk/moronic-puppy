@@ -4,6 +4,9 @@
   "description": "",
   "license": "Apache-2.0",
   "keywords": [],
+  "scripts": {
+    "generate-docs": "for f in ./docs/*.puml; do cat $f | plantuml -pipe > ${f%.puml}.png; done"
+  },
   "devDependencies": {
     "@cazoo/eslint-plugin-eslint": "^1.0.2",
     "@types/jest": "^27.0.1",
