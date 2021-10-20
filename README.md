@@ -1,5 +1,7 @@
 # Moronic Puppy
 
+A framework for serverless event sourcing on Node and AWS.
+
 ![Moronic Puppy Architecture Diagram](/docs/architecture.png)
 
 1. The **Event Store** (DynamoDB) holds the live events for quick, easy retrieval.
